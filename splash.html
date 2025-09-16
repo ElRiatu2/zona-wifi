@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bugamet WiFi</title>
+<style>
+  * { box-sizing: border-box; margin:0; padding:0; }
+  
+  body {
+    background-color: #000;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 0;
+    background-color: rgba(0,0,0,0.85);
+    box-shadow: 0 2px 8px rgba(230,0,0,0.4);
+  }
+  header img {
+    max-width: 120px;
+    height: auto;
+    margin-bottom: 10px;
+  }
+  header h1 {
+    color: white;
+    font-weight: 600;
+    font-size: 32px;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .welcome-message {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: white;
+  }
+
+  /* Formulario / Welcome box con borde rojo sutil */
+  form, .welcome {
+    background-color: #111;
+    padding: 25px 30px;
+    border-radius: 12px;
+    max-width: 380px;
+    width: 100%;
+    margin-top: 10px;
+    box-shadow: 0 0 15px rgba(230,0,0,0.2);
+    border: 2px solid #e60000;
+  }
+
+  h2 {
+    margin-bottom: 15px;
+    font-weight: 600;
+    font-size: 28px;
+    color: white;
+  }
+
+  input[type="text"], input[type="tel"] {
+    padding: 12px;
+    margin: 10px 0;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #333;
+    outline: none;
+    font-size: 16px;
+  }
+
+  input[type="submit"], button {
+    background-color: #e60000;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    margin-top: 20px;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  input[type="submit"]:hover, button:hover {
+    background-color: #b30000;
+  }
+
+  .hidden { display: none; }
+  #timer { font-weight: 500; font-size: 20px; color: white; }
+
+  /* Footer idéntico al sitio */
+  footer {
+    text-align: center;
+    padding: 25px 20px;
+    color: white;
+    background-color: rgba(230,0,0,0.8);
+    box-shadow: 0 -2px 8px rgba(230,0,0,0.5);
+    font-size: 14px;
+    font-weight: 600;
+    user-select: none;
+  }
+
+  @media (max-width: 500px) {
+    header h1 { font-size: 24px; }
+    .welcome-message { font-size: 20px; }
+    h2 { font-size: 24px; }
+    form, .welcome { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="images/logo.png" alt="Punto Bugamet Logo">
+  <h1>Bugamet WiFi</h1>
+</header>
+
+<main>
+  <div class="welcome-message">Bienvenid@ a Punto Bugamet</div>
+
+  <!-- Formulario inicial -->
+  <form id="loginForm" method="post">
+    <input type="text" name="name" placeholder="Nombre" required><br>
+    <input type="tel" name="phone" placeholder="Teléfono" required><br>
+    <input type="submit" value="Conectar">
+  </form>
+
+  <!-- Pantalla de bienvenida tras iniciar sesión -->
+  <div id="welcome" class="welcome hidden">
+    <h2>Bienvenido a Punto Bugamet</h2>
+    <p>A partir de ahora cuentas con <span id="timer">30:00</span> minutos de internet.</p>
+    <button id="continueBtn">Siguiente</button>
+  </div>
+</main>
+
+<footer>
+  <p>© 2025 Punto Bugamet. Todos los derechos reservados.</p>
+</footer>
+
+<script>
+const loginForm = document.getElementById('loginForm');
+const welcomeDiv = document.getElementById('welcome');
+const timerSpan = document.getElementById('timer');
+const continueBtn = document.getElementById('continueBtn');
+
+// Expresiones regulares para validar
+const nameRegex = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+const phoneRegex = /^[0-9]+$/;
+
+loginForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  const name = loginForm.name.value.trim();
+  const phone = loginForm.phone.value.trim();
+
+  // Validaciones
+  if(!nameRegex.test(name)){
+    alert("El nombre solo puede contener letras y espacios.");
+    return;
+  }
+  if(!phoneRegex.test(phone)){
+    alert("El teléfono solo puede contener números.");
+    return;
+  }
+
+  // Enviar datos a Google Sheets
+  fetch("https://script.google.com/macros/s/AKfycbzf4BI-NgxvMxyH-tvtJsSGJcpJRVtCZUA_HB_QA5ZV336RxCEwIZE4BKj0od0QYGa7/exec", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, phone })
+  }).then(res => res.json())
+    .then(data => {
+      console.log("Guardado en Google Sheet:", data);
+      loginForm.classList.add('hidden');
+      welcomeDiv.classList.remove('hidden');
+      startTimer(30 * 60);
+    }).catch(err => console.error(err));
+});
+
+function startTimer(duration) {
+  let timer = duration, minutes, seconds;
+  const interval = setInterval(function() {
+    minutes = parseInt(timer / 60, 10);
+    seconds = parseInt(timer % 60, 10);
+
+    minutes = minutes < 10 ? "0"+minutes : minutes;
+    seconds = seconds < 10 ? "0"+seconds : seconds;
+
+    timerSpan.textContent = minutes + ":" + seconds;
+
+    if (--timer < 0) {
+      clearInterval(interval);
+      timerSpan.textContent = "Tiempo terminado";
+    }
+  }, 1000);
+}
+
+continueBtn.addEventListener('click', function() {
+  window.location.href = "https://puntobugamet.com";
+});
+</script>
+
+</body>
+</html>
